@@ -20,14 +20,14 @@ git remote add origin git@github.com:foxears/fde-learning.git
 git push -u origin master
 这个是将我们本地的仓库和远程的仓库连接在一起,然后我们 push 本地的代码作为 master
 git switch -c feature-greeting
-
+这个是为了切换到我们的分支上,-C是为了创建一个新的分支
 git checkout master
-
+切换到我们的主线上
 git merge feature-greeting
-
-git log --oneline --graph
-git branch -d feature-greeting
-git push
+我们尝试合并刚创建的那个分支到主线上
+git log --oneline --graph 这是画出一个我们分支合并到主线上的流程图
+git branch -d feature-greeting 这个是因为我们的分支已经合并到了主线上了,所以我们将之前不需要的分支删掉
+git push 然后我们把所有的代码部署到远程的仓库上
 
 
 3. 报错复盘（今天每个报错都记一条）
@@ -38,7 +38,7 @@ ERROR: Repository not found.
 fatal: Could not read from remote repository.
 Please make sure you have the correct access rights
 and the repository exists.
-
+那是因为我的机器上有之前旧的 SSH,所以他们找不到现在的远程仓库.我们重新配置了一下 SSH 就好了
 
 5. 对照今天的验收项
 
