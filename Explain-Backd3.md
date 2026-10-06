@@ -39,6 +39,7 @@ fatal: Could not read from remote repository.
 Please make sure you have the correct access rights
 and the repository exists.
 那是因为我的机器上有之前旧的 SSH,所以他们找不到现在的远程仓库.我们重新配置了一下 SSH 就好了
+纠正（重要，就一处）： Repository not found 的根因你写错了。不是"机器上有旧 SSH"——SSH 当时已经通了，Hi Foxears26! 就是铁证。真正原因是 remote 地址里的用户名写错了（foxears vs Foxears26）。记住这个区分：SSH 管"你是谁"，地址管"去哪"——这次是"去哪"错了。排错时先分清是哪一层，能省一半时间。
 
 5. 对照今天的验收项
 
