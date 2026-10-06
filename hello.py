@@ -1,5 +1,9 @@
-print("合并冲突!")
+def greet(name: str) -> str:
+    """Return a friendly greeting for the given name."""
+    if name == "":
+        return "Hello, stranger!"
+    return f"Hello, {name}!"
 
 
-print("W1D2: learning git")
-print("试试后悔药怎么吃")
+if __name__ == "__main__":
+    print(greet("World"))
