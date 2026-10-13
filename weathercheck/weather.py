@@ -2,19 +2,19 @@ import argparse
 import requests
 
 WEATHER_DESC = {
-    0: "晴", 1: "大致晴", 2: "多云", 3: "阴",
-    45: "雾", 48: "雾凇",
-    51: "毛毛雨（轻）", 53: "毛毛雨", 55: "毛毛雨（密）",
-    61: "小雨", 63: "中雨", 65: "大雨",
-    71: "小雪", 73: "中雪", 75: "大雪",
-    80: "阵雨（轻）", 81: "阵雨", 82: "阵雨（强）",
-    95: "雷暴", 96: "雷暴+冰雹", 99: "雷暴+大冰雹",
-}   # 解码表
+    0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+    45: "Fog", 48: "Depositing rime fog",
+    51: "Light drizzle", 53: "Drizzle", 55: "Dense drizzle",
+    61: "Light rain", 63: "Moderate rain", 65: "Heavy rain",
+    71: "Light snow", 73: "Moderate snow", 75: "Heavy snow",
+    80: "Light rain showers", 81: "Rain showers", 82: "Violent rain showers",
+    95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with heavy hail",
+}   # Weather code descriptions
 
 def get_coords(city):
-    # 发 geocoding 请求，params={"name": city, "count": 1}
-    # 用 .get("results") 判空：没有就 return None
-    # 有就 return (latitude, longitude)
+    # Send a geocoding request with params={"name": city, "count": 1}.
+    # Check .get("results"): return None if there are no results.
+    # Otherwise, return (latitude, longitude).
     url = "https://geocoding-api.open-meteo.com/v1/search"
     response = requests.get(url, params={"name": city, "count": 1}, timeout=10)
     response.raise_for_status()
@@ -27,9 +27,8 @@ def get_coords(city):
     return location["latitude"], location["longitude"]
 
 def get_weather(lat, lon):
-    # 发 forecast 请求，params 里带上 latitude、longitude、
-    # current、daily、timezone
-    # return r.json()
+    # Send a forecast request with latitude, longitude, current, daily, and timezone params.
+    # Return the response JSON.
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": lat,
@@ -43,26 +42,26 @@ def get_weather(lat, lon):
     return response.json()
 
 def main():
-    parser = argparse.ArgumentParser(description="查天气小工具")
-    parser.add_argument("city", help="城市名，如 Toronto")
+    parser = argparse.ArgumentParser(description="A simple weather lookup tool")
+    parser.add_argument("city", help="City name, e.g. Toronto")
     args = parser.parse_args()
 
     coords = get_coords(args.city)
     if coords is None:
-        print("没找到城市：{}".format(args.city))
+        print("City not found: {}".format(args.city))
         return
 
     weather = get_weather(*coords)
     current = weather["current"]
-    current_desc = WEATHER_DESC.get(current["weather_code"], "未知")
-    print("{} 当前温度：{}°C，{}".format(args.city, current["temperature_2m"], current_desc))
+    current_desc = WEATHER_DESC.get(current["weather_code"], "Unknown")
+    print("{} current temperature: {}°C, {}".format(args.city, current["temperature_2m"], current_desc))
 
     daily = weather["daily"]
-    print("未来 3 天：")
+    print("Forecast for the next 3 days:")
     for i in range(min(3, len(daily["time"]))):
-        description = WEATHER_DESC.get(daily["weather_code"][i], "未知")
+        description = WEATHER_DESC.get(daily["weather_code"][i], "Unknown")
         print(
-            "{}：{}，最高 {}°C，最低 {}°C".format(
+            "{}: {}, high {}°C, low {}°C".format(
                 daily["time"][i], description,
                 daily["temperature_2m_max"][i], daily["temperature_2m_min"][i]
             )
