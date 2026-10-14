@@ -16,10 +16,7 @@ class AlertCreate(BaseModel):
     level: Literal["info", "warning", "critical"]
 
 
-@app.get("/alerts/{level}")
-def get_alerts(level: str, limit: int = 10):
-    result = [a for a in alerts if a["level"] == level]
-    return result[:limit]
+
 
 @app.post("/alerts", status_code=201)
 def create_alert(alert: AlertCreate):
@@ -45,7 +42,23 @@ def delete_alert(alert_id: int):
             return {"message": "Alert deleted"}
     raise HTTPException(status_code=404, detail="Alert not found")
 
+@app.get("/alerts")
+def list_alerts(page: int = 1, page_size: int = 10):
+    start = (page - 1) * page_size
+    end = start + page_size
+    return {
+        "total": len(alerts),
+        "page": page,
+        "page_size": page_size,
+        "items": alerts[start:end],
+    }
 
+@app.get("/alerts/by-id/{alert_id}")
+def get_alert(alert_id: int):
+    for a in alerts:
+        if a["id"] == alert_id:
+            return a
+    raise HTTPException(status_code=404, detail="Alert not found")
 
 
 
