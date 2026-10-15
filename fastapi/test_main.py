@@ -51,7 +51,7 @@ def test_delete_alert():
     alert_id = created.json()["id"]
 
     deleted = client.delete(f"/alerts/{alert_id}")
-    assert deleted.status_code == 201
+    assert deleted.status_code == 200
 
     missing = client.get(f"/alerts/by-id/{alert_id}")
     assert missing.status_code == 404
