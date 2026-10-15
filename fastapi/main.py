@@ -60,7 +60,10 @@ def get_alert(alert_id: int):
             return a
     raise HTTPException(status_code=404, detail="Alert not found")
 
-
+@app.get("/alerts/{level}")
+def get_alerts(level: str, limit: int = 10):
+    result = [a for a in alerts if a["level"] == level]
+    return result[:limit]
 
 
 if __name__ == "__main__":
