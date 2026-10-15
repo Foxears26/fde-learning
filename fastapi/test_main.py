@@ -1,7 +1,16 @@
 from fastapi.testclient import TestClient
 from main import app
 
-client = TestClient(app)
+client = TestClient(app, headers={"x-api-key": "dev-secret-key"})
+unauthenticated_client = TestClient(app)
+
+def test_get_alerts_without_api_key():
+    r = unauthenticated_client.get("/alerts")
+    assert r.status_code == 401
+
+def test_get_alerts_with_wrong_api_key():
+    r = client.get("/alerts", headers={"x-api-key": "wrong-key"})
+    assert r.status_code == 401
 
 def test_get_alerts():
     r = client.get("/alerts")
