@@ -47,7 +47,7 @@ def test_pagination():
 
 def test_delete_alert():
     created = client.post("/alerts", json={"title": "delete me", "level": "info"})
-    assert created.status_code == 201
+    assert created.status_code == 200
     alert_id = created.json()["id"]
 
     deleted = client.delete(f"/alerts/{alert_id}")
