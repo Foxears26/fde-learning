@@ -16,7 +16,7 @@ def get_coords(city):
     # Check .get("results"): return None if there are no results.
     # Otherwise, return (latitude, longitude).
     url = "https://geocoding-api.open-meteo.com/v1/search"
-    response = requests.get(url, params={"name": city, "count": 1}, timeout=10)
+    response = requests.get(url, params={"name": city, "count": 1, "language": "zh"}, timeout=10)
     response.raise_for_status()
 
     results = response.json().get("results")
