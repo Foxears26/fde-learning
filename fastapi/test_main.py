@@ -7,7 +7,7 @@ from main import app
 #upgrade to pytest fixture
 @pytest.fixture
 def client():
-    from main import alerts
+    from routers.alerts import alerts
     alerts.clear()
     alerts.extend([
         {"id": 1, "level": "warning", "title": "CPU 高"},
