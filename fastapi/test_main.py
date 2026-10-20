@@ -48,6 +48,10 @@ def test_pagination_param(client, page, page_size, expected_len):
     r = client.get(f"/alerts?page={page}&page_size={page_size}")
     assert r.status_code == 200
     assert len(r.json()["items"]) == expected_len
+def test_pagination_first_page_returns_first_items(client):
+    r = client.get("/alerts?page=1&page_size=2")
+    assert [item["id"] for item in r.json()["items"]] == [1, 2]
+
 
 
 def test_get_alerts_without_api_key(unauthenticated_client):
