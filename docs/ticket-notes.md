@@ -1,3 +1,61 @@
+# English Version
+
+Ticket #2001: The user says, "I included an API key, but the request still returns 401. Is your authentication broken?" The header in the request they shared is X-Api-Key: dev-secret-key (pay attention to capitalization and spelling).
+
+- **Priority**: P3
+- **Reproduction steps**: Unable to reproduce.
+  1. Check the logs: Was there actually a 401 during the reported time window? If so, match the request path and timestamp to confirm that the request reached the server.
+  2. Ask the user for the exact request: Ask them to copy the actual request directly from their tool (a curl command or a Postman screenshot), rather than describe it. Focus on the key value:
+     - A typo in the value (dev-secret-kye).
+     - Leading or trailing spaces.
+     - A key from the wrong environment (using a production key against a test server).
+     - The tool did not send the header at all (some clients require a checkbox to enable it).
+- **Root cause hypothesis**: The key value is most likely incorrect; the header name is unlikely to be the cause.
+- **Decision**: Neither close nor escalate yet. First ask the user for the exact request and check the logs; classify the issue once evidence is available.
+
+Ticket #2002: The user says, "POST /alerts keeps returning 422, but my JSON format is clearly correct." Their request body is {"title": "Server down", "level": "HIGH"}.
+
+- **Priority**: P3. One user is affected, and changing a value resolves the issue.
+- **Reproduction steps**:
+
+```powershell
+curl.exe -X POST -H "X-API-Key: dev-secret-key" -H "Content-Type: application/json" --% -d "{\"title\": \"Server down\", \"level\": \"HIGH\"}" http://127.0.0.1:8000/alerts
+```
+
+- **Root cause hypothesis**: The user supplied HIGH, which is outside the allowed enum values. The API rejects it as designed: 422 is the correct behavior, not a bug (the value is invalid).
+- **Decision**: Close the ticket and reply with the three allowed values. Suggest a documentation improvement: make the enum values more prominent.
+
+Ticket #2003: The user says, "All three alerts I created yesterday are gone today! Did you lose my data?" An operations colleague adds that the service restarted last night.
+
+(The data is temporarily stored in memory, so last night's restart cleared it.)
+
+- **Priority**: P2
+- **Reproduction steps**: -
+- **Root cause hypothesis**: -
+- **Decision**: Escalate to the engineering/product team with the title "Data is not persisted and is lost on restart; database storage is needed."
+
+Template:
+
+## Ticket #2001
+
+- **Priority**: P? — One-sentence justification (who is affected and how severe it is).
+- **Reproduction steps**: 1. ... 2. ... (Actually send the request described by the user and record what you sent and what response you received.)
+- **Root cause hypothesis**: An evidence-based hypothesis (what the logs show and how the code is written).
+- **Decision**: Escalate / Close — Explain why (is it a product bug or a user issue? What should the user do next?).
+
+Assess priority across three dimensions:
+
+| Priority | Criteria | Example |
+| --- | --- | --- |
+| P1 | Complete system outage / data loss / all users affected | Service-wide 500 errors; database lost |
+| P2 | Core functionality broken / a group of users affected / no workaround | A feature fails for everyone |
+| P3 | A single user's issue / a workaround exists | Configuration or usage errors that can be resolved with guidance |
+| P4 | Questions, unclear documentation, or user mistakes | "What does this parameter mean?" |
+
+Rule of thumb: scope of impact × severity × availability of a workaround. The wider the impact and the fewer the workarounds, the higher the priority.
+
+---
+
 
 
 
