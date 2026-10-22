@@ -3,14 +3,15 @@
 
 ## 快速开始
 ### 本地运行
-pip install -r requirements.txt
+pip install -r ../requirements.txt  # 在 fastapi/ 目录下
+docker start pg-alerts
 uvicorn main:app --reload   # 在 fastapi/ 目录下
 ### Docker 运行
 docker build -t alert-api .
 docker run -d -p 8000:8000 --name alert-api alert-api
 
 ## 鉴权
-所有请求带 header：X-API-Key: dev-secret-key
+所有 /alerts 请求带 header：X-API-Key: dev-secret-key
 
 ## 接口列表
 | 方法 | 路径 | 说明 |
@@ -20,3 +21,25 @@ docker run -d -p 8000:8000 --name alert-api alert-api
 | PUT | /alerts/{id} | 更新 |
 | DELETE | /alerts/{id} | 删除 |
 交互式文档：服务启动后打开 http://127.0.0.1:8000/docs
+
+## PostgreSQL
+
+告警通过 SQLAlchemy ORM 存入 PostgreSQL 的 `alerts` 表。连接串从环境变量
+`DATABASE_URL` 读取，默认值为
+`postgresql+psycopg2://postgres:devpassword@localhost:5432/alertsdb`。
+本地使用已有的 `alertsdb` 和 `alerts` 表；运行 uvicorn 前先启动 `pg-alerts`。
+
+## 测试
+
+首次运行前创建独立测试库：
+
+```powershell
+docker start pg-alerts
+docker exec pg-alerts psql -U postgres -c "CREATE DATABASE alertsdb_test"
+python -m pytest -v
+```
+
+测试使用 `DATABASE_URL` 的连接信息，但固定数据库名为 `alertsdb_test`，
+不会清理开发库。需要其他测试服务器时可设置 `TEST_DATABASE_URL`，库名仍固定为
+`alertsdb_test`。测试自动建表，每个测试前清空告警表、重置 ID 并插入原有四条
+种子数据，测试后再次清空。CI 使用 PostgreSQL 16 service 自动创建测试库。
