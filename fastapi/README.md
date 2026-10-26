@@ -13,6 +13,22 @@ docker run -d -p 8000:8000 --name alert-api alert-api
 ## 鉴权
 所有 /alerts 请求带 header：X-API-Key: dev-secret-key
 
+## GitHub OAuth 登录 demo
+
+在 GitHub OAuth App 中将回调地址设为 `http://localhost:8000/auth/callback`。
+启动服务前，在当前 PowerShell 设置环境变量（填入自己的值）：
+
+```powershell
+$env:GITHUB_CLIENT_ID = "<你的 Client ID>"
+$env:GITHUB_CLIENT_SECRET = "<你的 Client Secret>"
+uvicorn main:app --reload
+```
+
+浏览器访问 `http://localhost:8000/login`，授权后返回
+`{"login": "用户名", "message": "欢迎 用户名"}`。
+`/login` 和 `/auth/callback` 无需 API Key；凭据仅在请求时从环境变量读取。
+此 demo 只演示授权及获取用户名，不创建登录会话。
+
 ## 接口列表
 | 方法 | 路径 | 说明 |
 | GET | /alerts | 列表（支持 page / page_size 分页） |
