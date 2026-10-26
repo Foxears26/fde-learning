@@ -51,7 +51,22 @@ def test_exhausted_retries_raise(status, waits):
     assert waits == [1.25, 2.25, 4.25]
 
 
-@pytest.mark.parametrize("status", [400, 401, 403, 404, 422])
+def test_404_requests_once_without_retry(waits):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(404, headers={"Retry-After": "7"})
+
+    with APIClient("https://example.com", transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(httpx.HTTPStatusError) as error:
+            client.get("/missing")
+    assert error.value.response.status_code == 404
+    assert len(requests) == 1
+    assert waits == []
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 422])
 def test_other_4xx_do_not_retry(status, waits):
     requests = []
 
@@ -64,6 +79,23 @@ def test_other_4xx_do_not_retry(status, waits):
             client.get("/fail")
     assert len(requests) == 1
     assert waits == []
+
+
+def test_retry_after_reads_each_response_header(waits):
+    requests = []
+    headers = ["7", "2"]
+
+    def handler(request):
+        requests.append(request)
+        index = len(requests) - 1
+        if index < len(headers):
+            return httpx.Response(429, headers={"Retry-After": headers[index]})
+        return httpx.Response(200)
+
+    with APIClient("https://example.com", transport=httpx.MockTransport(handler)) as client:
+        assert client.get("/").status_code == 200
+    assert len(requests) == 3
+    assert waits == [float(value) for value in headers]
 
 
 @pytest.mark.parametrize("header, expected", [("3", 3.0), ("0", 0.0), ("bad", 1.25), ("-1", 1.25)])
