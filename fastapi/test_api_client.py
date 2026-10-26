@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
+from urllib.parse import parse_qs
 
 import httpx
 import pytest
@@ -33,6 +34,48 @@ def test_429_twice_then_success(waits):
         "connect": 5.0, "read": 10.0, "write": 10.0, "pool": 10.0,
     }
     assert waits == [1.25, 2.25]
+
+
+@pytest.mark.parametrize("status", [429, 500])
+def test_post_retries_and_preserves_form_and_headers(status, waits):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        if len(requests) == 1:
+            return httpx.Response(status, headers={"Retry-After": "3"})
+        return httpx.Response(200, json={"access_token": "test-token"})
+
+    with APIClient("https://github.com", transport=httpx.MockTransport(handler)) as client:
+        response = client.post(
+            "/login/oauth/access_token",
+            data={"code": "test-code"},
+            headers={"Accept": "application/json"},
+        )
+    assert response.json() == {"access_token": "test-token"}
+    assert len(requests) == 2
+    for request in requests:
+        assert request.method == "POST"
+        assert str(request.url) == "https://github.com/login/oauth/access_token"
+        assert request.headers["accept"] == "application/json"
+        assert parse_qs(request.content.decode()) == {"code": ["test-code"]}
+        assert request.extensions["timeout"]["connect"] == 5.0
+    assert waits == ([3.0] if status == 429 else [1.25])
+
+
+def test_post_404_does_not_retry(waits):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(404)
+
+    with APIClient("https://example.com", transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            client.post("/missing", json={"name": "test"})
+    assert len(requests) == 1
+    assert requests[0].content == b'{"name":"test"}'
+    assert waits == []
 
 
 @pytest.mark.parametrize("status", [429, 500, 503, 599])

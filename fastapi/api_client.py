@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class APIClient:
-    """GET 返回 httpx.Response；失败时保留 httpx 的原始异常。
+    """GET/POST 返回 httpx.Response；失败时保留 httpx 的原始异常。
 
     max_retries 是首次请求之后的重试次数，默认最多请求 4 次。
     timeout 可传秒数或 httpx.Timeout；默认 connect=5、read/write/pool=10。
@@ -56,10 +56,23 @@ class APIClient:
         except (ValueError, TypeError, OverflowError):
             return None
 
-    def get(self, path: str) -> httpx.Response:
+    def get(self, path: str, *, headers: dict[str, str] | None = None) -> httpx.Response:
+        return self._request("GET", path, headers=headers)
+
+    def post(
+        self,
+        path: str,
+        *,
+        data: dict[str, str] | None = None,
+        json: object = None,
+        headers: dict[str, str] | None = None,
+    ) -> httpx.Response:
+        return self._request("POST", path, data=data, json=json, headers=headers)
+
+    def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
         for attempt in range(self.max_retries + 1):
             # 不捕获网络/超时异常：仅 HTTP 429 和 5xx 可以重试。
-            response = self._client.get(path)
+            response = self._client.request(method, path, **kwargs)
             retryable = response.status_code == 429 or 500 <= response.status_code < 600
             if not retryable or attempt == self.max_retries:
                 response.raise_for_status()
@@ -71,8 +84,8 @@ class APIClient:
             # 有效 Retry-After 优先，直接使用服务端要求的等待时间。
             response.close()
             logger.info(
-                "GET %s: HTTP %s; retry %s/%s in %.3fs (Retry-After=%r)",
-                response.request.url, response.status_code, attempt + 1,
+                "%s %s: HTTP %s; retry %s/%s in %.3fs (Retry-After=%r)",
+                method, response.request.url, response.status_code, attempt + 1,
                 self.max_retries, delay, response.headers.get("Retry-After"),
             )
             time.sleep(delay)
