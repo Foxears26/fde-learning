@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from routers import auth
+import api_client
 
 
 @pytest.fixture
@@ -17,11 +18,14 @@ def client(monkeypatch):
 
 
 def mock_github(monkeypatch, handler):
-    async_client = httpx.AsyncClient
+    client_class = auth.APIClient
     monkeypatch.setattr(
-        auth.httpx, "AsyncClient",
-        lambda **kwargs: async_client(transport=httpx.MockTransport(handler), **kwargs),
+        auth, "APIClient",
+        lambda *args, **kwargs: client_class(
+            *args, transport=httpx.MockTransport(handler), **kwargs
+        ),
     )
+    monkeypatch.setattr(api_client.time, "sleep", lambda seconds: None)
 
 
 def test_login_redirect_without_api_key(client):

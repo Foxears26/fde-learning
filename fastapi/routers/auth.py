@@ -5,6 +5,8 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 
+from api_client import APIClient
+
 
 router = APIRouter()
 REDIRECT_URI = "http://localhost:8000/auth/callback"
@@ -23,7 +25,7 @@ async def login():
 
 
 @router.get("/auth/callback")
-async def auth_callback(code: str):
+def auth_callback(code: str):
     # 在请求时读取配置，未配置 OAuth 也不会影响原有接口的启动。
     credentials = {
         "client_id": os.environ["GITHUB_CLIENT_ID"],
@@ -32,22 +34,21 @@ async def auth_callback(code: str):
         "redirect_uri": REDIRECT_URI,
     }
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            token_response = await client.post(
-                "https://github.com/login/oauth/access_token",
+        with APIClient("https://github.com", timeout=10.0) as client:
+            token_response = client.post(
+                "/login/oauth/access_token",
                 data=credentials,
                 headers={"Accept": "application/json"},
             )
-            token_response.raise_for_status()
             access_token = token_response.json().get("access_token")
             if not access_token:
                 raise HTTPException(status_code=400, detail="GitHub authorization failed")
 
-            user_response = await client.get(
-                "https://api.github.com/user",
+        with APIClient("https://api.github.com", timeout=10.0) as client:
+            user_response = client.get(
+                "/user",
                 headers={"Authorization": f"Bearer {access_token}"},
             )
-            user_response.raise_for_status()
             username = user_response.json()["login"]
     except httpx.HTTPError:
         raise HTTPException(status_code=502, detail="GitHub request failed") from None
