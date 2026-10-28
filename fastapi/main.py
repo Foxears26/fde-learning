@@ -2,6 +2,7 @@
 from fastapi import Depends, FastAPI, HTTPException, Header
 from routers.alerts import router as alerts_router
 from routers.auth import router as auth_router
+from routers.tickets import router as tickets_router
 import logging, time, uuid, json
 from dotenv import load_dotenv
 
@@ -20,6 +21,7 @@ def check_key(x_api_key: str | None = Header(default=None)):
 app.include_router(alerts_router, dependencies=[Depends(check_key)])
 # 浏览器 OAuth 跳转不携带 X-API-Key，登录路由不绑定鉴权依赖。
 app.include_router(auth_router)
+app.include_router(tickets_router)
 
 
 @app.get("/hello")
