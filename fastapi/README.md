@@ -58,14 +58,51 @@ python ai-demo/eval_tickets.py
 分类与 RAG 无关：分类发生在检索前，准确率差异可能来自模型波动。
 这两项规则指标不判断引用是否支持结论，仍需人工检查。
 
+## Eval 对比结果
+
+以下为本次项目记录中用户提供的 10 条工单评估结果，本次文档更新未重新调用模型。
+
+| 指标 | 有 RAG | 无 RAG | 说明 |
+| --- | --- | --- | --- |
+| 分类准确率 | 100% | 100% | 分类在检索前完成，与 RAG 无关 |
+| 引用准确率 | 75% | 0% | 期望技术类工单中，引用至少一个期望 FAQ 的比例 |
+| 关键信息覆盖率 | 85% | 75% | 建议回复命中的期望信息点总数 / 期望信息点总数 |
+
+T07（创建返回 422）两种模式的回复质量得分均为 0，疑为知识库缺口或期望答案问题，
+尚未确定根因。当前 FAQ-6 / FAQ-7 已包含 `info / warning / critical`，
+后续应检查实际 top-3、建议回复、期望 FAQ 与子串匹配规则，不能仅凭 0 分确认知识库缺失。
+分类得分仍单独统计，T07 的质量 0 分不代表分类错误。
+
+本次记录显示引用与信息覆盖指标提高，但 10 条样本及规则匹配不足以证明所有回复质量
+都提高。原始输出、运行时模型和代码版本未随本次数字提供，复跑时应一并保留，避免跨版本直接比较。
+
+## 文档导航
+
+- [新同事从零启动](../README.md)
+- [运行手册：启动、环境变量与排障](../docs/runbook.md)
+- [项目 2 复盘：指标选择与旧镜像 404](../docs/postmortem-tickets.md)
+
 ## 快速开始
-### 本地运行
-pip install -r ../requirements.txt  # 在 fastapi/ 目录下
-docker start pg-alerts
-uvicorn main:app --reload   # 在 fastapi/ 目录下
-### Docker 运行
-docker build -t alert-api .
-docker run -d -p 8000:8000 --name alert-api alert-api
+以下命令在仓库根目录执行；先按 [入门步骤](../README.md) 安装依赖并配置 `.env`。
+
+### 本地 uvicorn
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn main:app --app-dir fastapi --env-file .env --reload --host 127.0.0.1 --port 8000
+```
+
+### Docker
+
+先启动 Docker Desktop，再执行：
+
+```powershell
+docker build -t alert-api:project2 .
+docker run -d --name alert-api -p 127.0.0.1:8000:8000 --env-file .env --mount type=volume,source=tickets-chroma,target=/app/ai-demo/.chroma alert-api:project2
+```
+
+Key 在运行时通过 `--env-file` 传入，不写进 Dockerfile 或镜像。
+改代码后必须重新 build 并创建新容器；完整操作见 [runbook](../docs/runbook.md)。
+`/tickets` 无需启动 PostgreSQL；使用 `/alerts` 时再配置并启动数据库。
 
 ## 鉴权
 所有 /alerts 请求带 header：X-API-Key: dev-secret-key
