@@ -1,8 +1,13 @@
-# fde-learning：新同事入门
+# fde-learning
 
-学习仓库包含天气查询、告警 API（项目 1）和智能工单 API（项目 2）。
-项目 2 使用 DeepSeek 分类和生成回复，技术类工单通过 Chroma 检索 D3 的 20 条 FAQ。
+学习仓库包含天气查询、告警 API + 智能工单 API。
+智能工单使用 DeepSeek 分类和生成回复，技术类工单通过 Chroma 检索 D3 的 20 条 FAQ。
 本页以 Windows PowerShell 为例，所有命令从仓库根目录执行。
+
+ eval 对比结果表：
+   - 分类准确率：有 RAG 100% vs 无 RAG 100%（注明：分类在检索前完成，与 RAG 无关）
+   - 引用准确率：有 RAG 75% vs 无 RAG 0%
+   - 关键信息覆盖率：有 RAG 85% vs 无 RAG 75%
 
 ## 1. 准备环境和代码
 
