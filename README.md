@@ -1,13 +1,165 @@
+[English](#english) | [中文](#中文)
+
+<a id="english"></a>
+
+# fde-learning
+
+This learning repository contains a weather tool, an alerts API, and an intelligent ticket API.
+The ticket workflow uses DeepSeek to classify tickets and generate replies. Technical tickets
+retrieve relevant entries from the 20 FAQ entries introduced in D3 using Chroma.
+All commands on this page use Windows PowerShell and run from the repository root.
+
+## Project navigation
+
+- [FastAPI: alerts API and intelligent ticket API](fastapi/README.md#english)
+- [AI Demo: AI exercises and Project 2 evaluation](ai-demo/Readme.md#english)
+
+Recorded Project 2 evaluation results (not rerun for this documentation update):
+
+- Classification accuracy: with RAG 100% vs without RAG 100% (classification happens before retrieval and is independent of RAG).
+- Citation accuracy: with RAG 75% vs without RAG 0%.
+- Key information coverage: with RAG 85% vs without RAG 75%.
+
+## 1. Prepare the environment and source code
+
+Install Git and Python 3.11, and obtain a DeepSeek API key with available credit.
+For the container option, also install and start Docker Desktop with Linux containers.
+Running `/tickets` locally does not require Docker or PostgreSQL.
+The first dependency installation and embedding model download require internet access.
+
+Get the repository URL from your team and clone into a new directory. If you already have the code,
+open its directory instead:
+
+```powershell
+git clone <repository-url-from-your-team> fde-learning
+Set-Location fde-learning
+python --version
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+These commands call the virtual environment's Python directly, so activation is unnecessary.
+Dependencies include PyTorch-related packages, which may take time to install initially.
+
+## 2. Create the local environment file
+
+Create `.env` in the repository root with your editor. If it already exists, keep existing settings
+and add only the missing fields. Replace the placeholder with your own key. Use one `NAME=value`
+entry per line, without PowerShell's `$env:` prefix:
+
+```dotenv
+DEEPSEEK_API_KEY=replace-with-your-key
+DEEPSEEK_MODEL=deepseek-flash
+```
+
+Both `.gitignore` and `.dockerignore` exclude `.env`. Do not commit keys or put them in Dockerfile
+`ENV`, `ARG`, or source code. Docker injects settings at startup through `--env-file .env`;
+the file does not need to be copied into the image. See the [environment variable reference](docs/runbook.md#环境变量).
+
+## 3. Run tests that need no external services
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest fastapi/test_tickets.py ai-demo/test_rag_demo.py ai-demo/test_eval_tickets.py -q
+```
+
+These tests mock the LLM, consume no API credit, and do not download the embedding model.
+RAG tests use a temporary Chroma database and deterministic embedding substitutes.
+The full `fastapi/` suite also needs a separate PostgreSQL test database; see [FastAPI tests](fastapi/README.md#tests).
+
+## 4. Start the API
+
+Start the local service in the current terminal:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn main:app --app-dir fastapi --env-file .env --reload --host 127.0.0.1 --port 8000
+```
+
+Open the [interactive API documentation](http://127.0.0.1:8000/docs). Keep the service terminal running
+and perform the following checks in a second PowerShell window. You can also use the
+[Docker option](docs/runbook.md#docker-启动). Run only one service on a given host port.
+
+## 5. Check the service and both processing paths
+
+Check the service response first, then submit the examples through Swagger's `POST /tickets` → Try it out:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/hello
+```
+
+Expect `message: Hello World`. This check does not validate the LLM, RAG, or database.
+
+Nontechnical ticket:
+
+```json
+{"title":"Request an invoice","description":"How can I get an invoice for last month's payment?"}
+```
+
+Technical ticket:
+
+```json
+{"title":"API returns 401","description":"All /alerts requests return Invalid API key. How should I troubleshoot this?"}
+```
+
+Expect HTTP 200 with `category`, `urgency`, `suggested_reply`, and `citations`.
+Nontechnical tickets should return an empty `citations` array. Technical tickets retrieve the top three
+FAQ entries and return the IDs and original text of entries actually cited. If evidence is insufficient,
+a technical reply may also have no citations and request more information. HTTP 200 does not guarantee
+answer quality. `/tickets` does not require `X-API-Key`. The first technical request loads or downloads
+the embedding model; monitor the server logs until it finishes.
+
+## 6. Run the real evaluation
+
+Run this in a second terminal from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe ai-demo/eval_tickets.py
+```
+
+The script processes 10 tickets both with and without RAG, making up to 40 LLM calls and consuming
+API credit. No HTTP server is needed: it calls the same ticket processing workflow directly.
+Output includes classification, citation, and information coverage metrics plus individual results.
+Failures produce a nonzero exit code. Numbers can vary with the model and code.
+
+See the [recorded comparison](fastapi/README.md#eval-results) and [unresolved T07 issue](fastapi/README.md#known-issues).
+Classification precedes retrieval and is independent of RAG. Assess reply quality using citation and
+key information metrics together with manual inspection.
+
+## 7. Enable Project 1 as needed
+
+`/alerts` requires PostgreSQL and `X-API-Key: dev-secret-key`. For an existing learning database
+container, run `docker start pg-alerts`. See the [runbook](docs/runbook.md#可选启用-alerts-数据库)
+for creating a database, tables, and container connections from scratch. A stopped database affects
+`/alerts`, but not the `/tickets` workflow. `/tickets` still requires DeepSeek and, for technical tickets,
+the local FAQ model.
+
+## Further reading
+
+- [FastAPI endpoints, evaluation results, and tests](fastapi/README.md#english)
+- [Operations and troubleshooting runbook](docs/runbook.md)
+- [Project 2 postmortem](docs/postmortem-tickets.md)
+- [AI exercises](ai-demo/Readme.md#english)
+- [Weather tool](weathercheck/README.md#english)
+
+---
+
+<a id="中文"></a>
+
 # fde-learning
 
 学习仓库包含天气查询、告警 API + 智能工单 API。
 智能工单使用 DeepSeek 分类和生成回复，技术类工单通过 Chroma 检索 D3 的 20 条 FAQ。
 本页以 Windows PowerShell 为例，所有命令从仓库根目录执行。
 
- eval 对比结果表：
-   - 分类准确率：有 RAG 100% vs 无 RAG 100%（注明：分类在检索前完成，与 RAG 无关）
-   - 引用准确率：有 RAG 75% vs 无 RAG 0%
-   - 关键信息覆盖率：有 RAG 85% vs 无 RAG 75%
+## 项目导航
+
+- [FastAPI：告警 API 与智能工单 API](fastapi/README.md#中文)
+- [AI Demo：AI 练习与项目 2 评估](ai-demo/Readme.md#中文)
+
+项目 2 已记录的 eval 对比结果（本次文档更新未重新运行）：
+
+- 分类准确率：有 RAG 100% vs 无 RAG 100%（注明：分类在检索前完成，与 RAG 无关）
+- 引用准确率：有 RAG 75% vs 无 RAG 0%
+- 关键信息覆盖率：有 RAG 85% vs 无 RAG 75%
 
 ## 1. 准备环境和代码
 
@@ -114,8 +266,8 @@ Invoke-RestMethod http://127.0.0.1:8000/hello
 
 ## 后续阅读
 
-- [FastAPI 接口、评估结果与测试](fastapi/README.md)
+- [FastAPI 接口、评估结果与测试](fastapi/README.md#中文)
 - [运行与排障手册](docs/runbook.md)
 - [项目 2 复盘](docs/postmortem-tickets.md)
-- [AI 练习目录](ai-demo/Readme.md)
-- [天气查询项目](weathercheck/README.md)
+- [AI 练习目录](ai-demo/Readme.md#中文)
+- [天气查询项目](weathercheck/README.md#中文)
